@@ -1,12 +1,70 @@
 ﻿#include "BigInt.h"
 
-BigInt operator+(BigInt A, BigInt B)
+BigInt operator+(BigInt A, BigInt B) // Toán tử + Giữa 2 QInt
 {
 	string intA = A.GetBits();
 	string intB = B.GetBits();
 	string sum = SumBin(intA, intB);
 	BigInt temp;
-	temp.SaveBits(sum);
+	if (sum == "Math ERROR!!!!!!!") // Đã tràn bits
+	{
+		temp.a = 0;
+		temp.b = 0;
+		temp.full = true;
+	}
+	else
+		temp.SaveBits(sum);
+	return temp;
+}
+
+BigInt operator-(BigInt A, BigInt B) // Toán tử - giữa 2 QInt
+{
+	string intA = A.GetBits();
+	string intB = B.GetBits();
+	string subt = SubtBin(intA, intB);
+	BigInt temp;
+	if (subt == "Math ERROR!!!!!!!") // Đã tràn bits
+	{
+		temp.a = 0;
+		temp.b = 0;
+		temp.full = true;
+	}
+	else
+		temp.SaveBits(subt);
+	return temp;
+}
+
+BigInt operator*(BigInt A, BigInt B) // Toán tử * giữa 2 QInt
+{
+	string intA = A.GetBits();
+	string intB = B.GetBits();
+	string multi = MultiplyBin(intA, intB);
+	BigInt temp;
+	if (multi == "Math ERROR!!!!!!!") // Đã tràn bits
+	{
+		temp.a = 0;
+		temp.b = 0;
+		temp.full = true;
+	}
+	else
+		temp.SaveBits(multi);
+	return temp;
+}
+
+BigInt operator/(BigInt A, BigInt B) // Toán tử / giữa 2 QInt
+{
+	string intA = A.GetBits();
+	string intB = B.GetBits();
+	string divi = DiviBin(intA, intB);
+	BigInt temp;
+	if (divi == "Math ERROR!!!!!!!") // Đã tràn bits
+	{
+		temp.a = 0;
+		temp.b = 0;
+		temp.full = true;
+	}
+	else
+		temp.SaveBits(divi);
 	return temp;
 }
 
@@ -46,9 +104,7 @@ string BigInt::GetBits() // Lấy dãy bit được lưu trữ. Lưu trữ số 
 
 void BigInt::SaveBits(string bits) // Lưu từ dãy bits lại
 {
-	cout << bits << endl;
 	ChuanHoa(bits);
-	cout << bits << endl;
 	a = 0, b = 0;
 
 	int leng = bits.length();
@@ -85,13 +141,46 @@ void AddBit0(string &bits, int n) // Đưa vào cho đủ n bit
 		bits.insert(0, "0");
 }
 
-string SumBin(string bin1, string bin2) // Cộng 2 nhị phân
+string SumBin(string bin1, string bin2) // Cộng 2 nhị phân (Tràn bits báo lỗi)
 {
 	if (bin1.length() > bin2.length()) // Thêm bits cho bằng số phần tử nhau
 		AddBit0(bin2, bin1.length());
 	else
 		AddBit0(bin1, bin2.length());
-	int sur = 0;
+	int rem = 0; // Số dư
+	string Result;
+	int sum;
+	for (int i = bin1.length() - 1; i >= 0; --i)
+	{
+		sum = rem + bin1[i] + bin2[i] - 96;
+		if (sum > 1)
+		{
+			rem = 1;
+			Result.insert(Result.begin(), sum + 46);
+		}
+		else
+		{
+			rem = 0;
+			Result.insert(Result.begin(), sum + 48);
+		}
+	}
+	if (rem == 1)
+		Result.insert(0, "1");
+	if (Result.length() > 128 && bin1.length() == 128 && bin1[0] == bin2[0]) // Nếu tràn bits thì trả về MATH ERROR
+		Result = "Math ERROR!!!!!!!"; // Lớn hơn 16 bytes để tránh trùng với lưu trữ
+	if (Result.length() > 128)
+		Result.erase(0, 1);
+	ChuanHoa(Result);
+	return Result;
+}
+
+string SumBin(string bin1, string bin2, int maxlen) // Cộng 2 nhị phân (Tràn bits tự bỏ đầu, giới hạn là max len)
+{
+	if (bin1.length() > bin2.length()) // Thêm bits cho bằng số phần tử nhau
+		AddBit0(bin2, bin1.length());
+	else
+		AddBit0(bin1, bin2.length());
+	int sur = 0; // Số dư
 	string Result;
 	int sum;
 	for (int i = bin1.length() - 1; i >= 0; --i)
@@ -110,9 +199,32 @@ string SumBin(string bin1, string bin2) // Cộng 2 nhị phân
 	}
 	if (sur == 1)
 		Result.insert(0, "1");
-	if (Result.length() > 128)
+	while (Result.length() > maxlen)
 		Result.erase(0, 1);
+	ChuanHoa(Result);
 	return Result;
+}
+
+string Bu2(string bin)
+{
+	AddBit0(bin, 128);
+	string bu1;
+	string bu2;
+	string so1 = "1";
+	int du = 0, sum;
+	for (int i = 0; i < 128; ++i) 
+	{
+		bu1.push_back(((bin[i] - 48) ^ 1) + 48);// Tạo bù 1
+	}
+	bu2 = SumBin(bu1, so1, 128);
+	ChuanHoa(bu2);
+	return bu2;
+}
+
+string SubtBin(string bin1, string bin2) //Trừ hai số nhị phân, (bin1-bin2)
+{
+	string bu2 = Bu2(bin2);
+	return SumBin(bin1, bu2);
 }
 
 void DichTrai(string& bits, int n) // Hàm dịch trái n phần tử
@@ -132,10 +244,10 @@ void DichTrai(string& bits, int n) // Hàm dịch trái n phần tử
 		bits[i] = '0';
 }
 
-string MultiplyBin(string bin1, string bin2)
+string MultiplyBin(string bin1, string bin2) // Nhân hai số nhị phân
 {
-	AddBit0(bin2, 128);
-	AddBit0(bin1, 128);
+	AddBit0(bin2, 256);
+	AddBit0(bin1, 256);
 	int leng = bin1.length();
 	string result;
 	int count = 0;
@@ -144,16 +256,59 @@ string MultiplyBin(string bin1, string bin2)
 		if ((bin2[i] - 48) & 1ULL) // kiểm tra từng bit của thừ số thứ 2, nếu là 1 thì dịch trái thừa số thứ nhất nếu cần rồi cộng vào kq
 		{
 			DichTrai(bin1, count);
-			result = SumBin(result, bin1);
+			result = SumBin(result, bin1,256);
 			count = 1;
 		}
 		else
 			count++; // Đếm số lượng bit 0 liên tiếp để dịch trái
 	}
+	ChuanHoa(result);
+	if(result.length()>128)
+		result = "Math ERROR!!!!!!!"; // Lớn hơn 16 bytes để tránh trùng với lưu trữ
 	return result;
 }
 
-string MultiplyOneDigit(string str, int factor) // Nhân hai số cùng cơ số 
+string DiviBin(string bin1, string bin2) // Chia lấy phần nguyên hệ nhị phân, bin1 là số chia, bin2 là số bị chia
+{
+	if (bin2 == "0")
+		return "Math ERROR!!!!!!!";
+	bool sign1 = false, sign2 = false; // Đánh dấu dấu của 2 số bin1, bin2
+	if (bin1.length() == 128 and bin1[0] == 1)
+	{
+		sign1 = true;
+		bin1 = Bu2(bin1); // đổi ra số dương
+	}
+	if (bin2.length() == 128 and bin2[0] == 1)
+	{
+		sign2 = true;
+		bin2 = Bu2(bin2); // đổi ra số dương
+	}
+	string result;
+	string rem;
+	int len = bin1.length();
+	for (int i = 0; i < len; ++i)
+	{
+		rem += bin1[i];
+		if (SubtBin(rem, bin2).length() < 128)
+		{
+			result += "1";
+			rem = SubtBin(rem, bin2);
+		}
+		else
+		{
+			result += "0";
+		}
+	}
+
+	ChuanHoa(result);
+	if (sign1 ^ sign2)
+	{
+		Bu2(result);
+	}
+	return result;
+}
+
+string MultiplyOneDigit(string str, int factor) // Nhân với số có một chữ số (hệ thập phân)
 {
 	if (factor < 1 || factor > 9)
 		return "0";
@@ -177,7 +332,7 @@ string MultiplyOneDigit(string str, int factor) // Nhân hai số cùng cơ số
 	return result;
 }
 
-string PowOneDigit(int factor, int exp) // hàm lũy thừa
+string PowOneDigit(int factor, int exp) // hàm lũy thừa với số mũ một chữ số
 {
 	if (exp == 0)
 		return "1";
@@ -269,8 +424,82 @@ string DecToBin(string dec)
 		temp = DivideStringForTwo(temp); // Chia 2 lấy nguyên
 		len = temp.size();
 	}
-	int l = bin.length();
-	if (l < 128)
-		bin.insert(0, 127, '0');
 	return bin;
 }
+
+int Get4bits(string bin, int pos)// Đưa vào vị trí lấy ra 4 ký tự nhị phân và trả về thập phân
+{
+	if (bin.length() - pos < 4)
+		return 0;
+	int result = 0;
+	for (int i = pos, j = 3; i < pos + 4; ++i, --j)
+	{
+		result += (bin[i] - 48)*pow(2, j);
+	}
+	return result;
+}
+
+string BintoHex(string bin)
+{
+	string result = "0";
+	int count = (bin.length() + 3) / 4 * 4;
+	AddBit0(bin, count);
+	for (int i = 0; i < count; i += 4)
+	{
+		int hex = Get4bits(bin, i);
+		if (Get4bits(bin, i) < 10)
+		{
+			result += hex + 48;
+		}
+		else
+		{
+			result += hex + 55; // Nếu từ 10-15 thì +55 để được 65-70 (A-F)
+		}
+	}
+	ChuanHoa(result);
+	return result;
+}
+
+string To4bits(int x) // Đưa vào 1 số nguyên từ 0 -> 15 trả về nhị phân
+{
+	string result;
+	for (int i = 3; i >= 0; --i)
+	{
+		result += ((x >> i) & 1ULL) + 48;
+	}
+	return result;
+}
+
+string HextoBin(string hex)
+{
+	string result;
+	int len = hex.length();
+	for (int i = 0; i < len; ++i)
+	{
+		int bin = hex[i];
+		if (bin > 64)
+		{
+			result += To4bits(bin - 55);
+		}
+		else
+		{
+			result += To4bits(bin - 48);
+		}
+	}
+	ChuanHoa(result);
+	return result;
+}
+
+string DectoHex(string dec)
+{
+	string bin = DecToBin(dec);
+	return BintoHex(bin);
+}
+
+string HextoDec(string hex)
+{
+	string bin = HextoBin(hex);
+	return BinToDec(bin);
+}
+
+
